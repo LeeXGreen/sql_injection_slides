@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+    <title>SQL Injection</title>
+
+    <meta name="author" content="Lee Green">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/solarized.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+        </script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+          <h1>SQL Injection</h1>
+					<p>Lee Green</p>
+        </section>
+
+        <section>
+          <img src='/img/exploits_of_a_mom.png' width='300%'/>
+          <p>
+            <small>image credit: http://xkcd.com/327</small>
+          </p>
+        </section>
+
+<!-- TYPES OF ATTACKS -->
+        <section>
+          <h2>What is an injection vulnerability?</h2>
+          <p>Vulnerabilities are present when user-supplied data ceases to be treated as <strong>data</strong>, and is executed in some fashion.</p>
+          <br/>
+          <p>An attacker is said to have <strong>injected</strong> a command into the data stream, often by escaping or encoding it.</p>
+          <br/>
+          <p>The manner of injection and execution is different for each type of vulnerability.</p>
+        </section>
+
+        <section>
+          <div style="float:left;">
+            <h2>Code injection</h2>
+            <ul>
+              <li>Cross-site scripting (XSS)</li>
+              <li>eval, deserialization</li>
+            </ul>
+          </div>
+
+          <div>
+            <h2>Shell injection</h2>
+            <ul>
+              <li>Shellshock</li>
+              <li>1995 CGI pages</li>
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2>SQL injection</h2>
+          <ul>
+            <li>Vanilla SQL injection</li>
+            <li>Blind SQL injection (incl. timing attacks)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Okay, but this is not a big deal, right?</h2>
+
+          <img class='fragment' src='/img/are_you_kidding_me.png' />
+        </section>
+
+        <section>
+          <h2>Open Web Application Security Project</h2>
+          <h3>Top 10</h3>
+          <img src='/img/a1-injection.png' />
+        </section>
+
+<!--  WHAT IS AT RISK  -->
+        <section>
+          <h2>results of SQL injection</h2>
+          <ul>
+            <li>Unauthorized access</li>
+            <li>Data loss or corruption</li>
+            <li>Lack of accountability</li>
+            <li>Denial of access</li>
+          </ul>
+        </section>
+
+<!--  PREVENTING ATTACKS  -->
+        <section>
+          <h2>Preventing injection attacks</h2>
+          <ul>
+            <li>Parameterized queries</li>
+            <li>Whitelisting / Blacklisting</li>
+            <li>Obfuscation of error messages</li>
+            <li>Escaping special characters</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Parameterized queries</h2>
+          <ul>
+            <li><b>The most effective way </b>to separate data from queries</li>
+            <li>This should be your first choice <b>every time</b></li>
+          </ul>
+          <br/>
+
+          <pre><code>
+            # bad.
+            m = Model.where("name = '#{params[:name]}'").first
+
+            # better.
+            m = Model.where('name = ?', params[:name]).first
+            m = Model.where(name: params[:name]).first
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Whitelisting</h2>
+          <ul>
+            <li>Can be applied <b>in addition to</b> parameterization of queries</li>
+          </ul>
+
+          <pre><code>
+            valid_sorts = {
+              'name_asc' => 'name ASC',
+              'name_desc' => 'name DESC',
+              'color_asc' => 'color ASC',
+              'color_desc' => 'color DESC',
+            }
+
+            user_input = params[:sort]
+
+            # default to 'name ASC' on bad input
+            sort_key = valid_sorts[user_input] || 'name ASC'
+            order_clause = valid_sorts[sort_key]
+
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Obfuscation of error messages</h2>
+          <ul>
+            <li><p>An error message can be the foothold that an attacker needs to hone in on a vulnerability.<p></li>
+            <li><p>We should never show the user an error message directly from the DB -- or a stacktrace!</p></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Blacklisting or escaping</h2>
+          <img src='/img/voting_machines.png' width='200%' />
+          <p><small>image credit: http://xkcd.com/463/</small></p>
+        </section>
+
+<!--  FINDING VULNERABILITIES  -->
+        <section>
+          <h2>Finding injection vulnerabilities</h2>
+          <ul>
+            <li>Brakeman gem</li>
+            <li>Source code examination / review</li>
+            <li>Testing / fuzzing</li>
+          </ul>
+        </section>
+
+<!--  OUR PROCESS  -->
+        <section>
+          <h2>Our Process</h2>
+          <ol>
+            <li>Find a vulnerability</li>
+            <li>Prove the vulnerability</li>
+            <li>Ensure the functionality is tested</li>
+            <li>Fix the vulnerability</li>
+            <li>Prove the vulnerability is fixed</li>
+          </ol>
+        </section>
+
+<!--  RESOURCES  -->
+        <section>
+          <h2>Resources</h2>
+          <ul>
+            <li>OWASP:
+              <ul>
+                <li>https://www.owasp.org/index.php/Top_10_2013-Top_10</li>
+                <li>http://railsgoat.cktricky.com/</li>
+              </ul>
+            </li>
+            <br/>
+
+            <li>Brakeman : http://brakemanscanner.org/</li>
+          </ul>
+        </section>
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: false,
+				history: true,
+        center: true,
+        previewLinks: true,
+        //keyboard: true,
+        //touch: false,
+
+				theme: 'solarized',
+				transition: 'none',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
